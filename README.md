@@ -1,14 +1,27 @@
-# astrbot-plugin-helloworld
+# AstrBot 300次元 (Yamibo) 签到插件 🌠
 
-AstrBot 插件模板 / A template plugin for AstrBot plugin feature
+这是一个基于 AstrBot 的插件，用于自动完成 [300次元 (Yamibo) 论坛](https://bbs.yamibo.com/) 的每日签到，并查询账号当前的积分状态。
 
-> [!NOTE]
-> This repo is just a template of [AstrBot](https://github.com/AstrBotDevs/AstrBot) Plugin.
-> 
-> [AstrBot](https://github.com/AstrBotDevs/AstrBot) is an agentic assistant for both personal and group conversations. It can be deployed across dozens of mainstream instant messaging platforms, including QQ, Telegram, Feishu, DingTalk, Slack, LINE, Discord, Matrix, etc. In addition, it provides a reliable and extensible conversational AI infrastructure for individuals, developers, and teams. Whether you need a personal AI companion, an intelligent customer support agent, an automation assistant, or an enterprise knowledge base, AstrBot enables you to quickly build AI applications directly within your existing messaging workflows.
+## 🚀 使用方法
 
-# Supports
+在聊天中向机器人发送以下指令：
 
-- [AstrBot Repo](https://github.com/AstrBotDevs/AstrBot)
-- [AstrBot Plugin Development Docs (Chinese)](https://docs.astrbot.app/dev/star/plugin-new.html)
-- [AstrBot Plugin Development Docs (English)](https://docs.astrbot.app/en/dev/star/plugin-new.html)
+**命令格式：**`/300签到 <您的Cookie>`
+
+> **提示：** 机器人会先尝试签到，如果签到成功或当日已签到，会自动拉取您当前的积分余额并汇总返回。
+
+## 🔑 如何获取 Cookie
+
+1. 在电脑浏览器登录 [Yamibo 论坛](https://bbs.yamibo.com/)。
+2. 按 `F12` 打开开发者工具，切换到 **Network (网络)** 标签页。
+3. 刷新页面，点击任何一个名为 `plugin.php` 或 `yamibo.com` 的请求。
+4. 在右侧 **Headers (标头)** -> **Request Headers** 中找到 `cookie:` 字段。
+5. 复制该字段后面的那一长串字符串即可。
+
+## ⚠️ 安全警告
+
+**Cookie 包含您的账号登录凭据，请务必妥善保管。**
+
+* 请勿将您的 Cookie 发送到任何公共群聊中（除非该机器人仅供您私人使用）。
+
+- ](https://docs.astrbot.app/en/dev/star/plugin-new.html)
