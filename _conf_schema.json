@@ -1,0 +1,9 @@
+{
+  "yamibo_cookie": {
+    "description": "300次元(Yamibo) 账号 Cookie",
+    "type": "string",
+    "hint": "请在此处填写你的 Yamibo 论坛 Cookie。抓取方法：浏览器按 F12 -> Network -> 刷新页面 -> 查看 plugin.php 请求的 Request Headers。",
+    "obvious_hint": true,
+    "default": ""
+  }
+}

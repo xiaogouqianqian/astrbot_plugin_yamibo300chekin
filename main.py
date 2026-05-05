@@ -2,35 +2,44 @@ import asyncio
 import cloudscraper
 from bs4 import BeautifulSoup
 from lxml import html
-from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
+from astrbot.api.all import *
+from astrbot.api import AstrBotConfig
+from astrbot.api.event import filter, AstrMessageEvent
 from astrbot.api.star import Context, Star, register
-from astrbot.api import logger
+from astrbot.api import logger, FunctionTool
 
-
-@register("astrbot_plugin_yamibo", "YourName", "Yamibo 论坛自动签到插件", "1.0.0")
+@register("astrbot_plugin_yamibo", "YourName", "Yamibo 论坛自动签到插件", "1.1.0")
 class YamiboCheckinPlugin(Star):
-    def __init__(self, context: Context):
+    def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
+        # 接收并保存配置对象
+        self.config = config
 
-    @filter.command("300签到")
-    async def yamibo_sign(self, event: AstrMessageEvent, cookie: str = ""):
+    # 1. 保留传统的指令触发方式
+    @filter.command("300签到") # type: ignore
+    # 2. 增加 AI 工具触发方式，赋予大语言模型自动调用的能力
+    @llm_tool(name="yamibo_auto_sign", desc="帮助用户在 300次元(Yamibo) 论坛进行自动打卡签到。当用户要求'签到300'、'打卡yamibo'或'签到论坛'时，请调用此工具。")
+    async def yamibo_sign(self, event: AstrMessageEvent):
         """
-        Yamibo 论坛签到。使用方法：/300签到 <你的cookie>
+        Yamibo 论坛签到。读取后台配置的 Cookie 进行签到。
         """
+        # 从 WebUI 的配置项中读取 Cookie
+        cookie = self.config.get("yamibo_cookie", "")
+        
         if not cookie:
-            yield event.plain_result("⚠️ 请提供你的 Cookie！\n使用格式：/300签到 <你的cookie内容>")
+            yield event.plain_result("⚠️ 尚未配置 Cookie！\n请前往 AstrBot WebUI 管理面板 -> 插件配置中填写 `yamibo_cookie` 后再试。")
             return
 
-        yield event.plain_result("⏳ 正在尝试绕过验证并进行签到，请稍候...")
+        yield event.plain_result("⏳ 收到指令，正在为你前往 300次元 签到，请稍候...")
         
-        # 将同步的阻塞任务放入线程池中执行，避免卡死 AstrBot 主事件循环
+        # 将同步的爬虫任务放入线程池，防止阻塞机器人的主事件循环
         result_msg = await asyncio.to_thread(self._run_checkin_task, cookie)
         
         yield event.plain_result(f"【300 签到结果】\n{result_msg}")
 
     def _run_checkin_task(self, cookie: str) -> str:
-        """运行实际的签到逻辑 (在后台线程运行)"""
-        msg = []  # 移除了全局变量，改为线程安全的局部变量
+        """后台运行的实际签到逻辑 (完全脱离主线程)"""
+        msg = []
         
         headers = {
             "Host": "bbs.yamibo.com",
@@ -56,6 +65,7 @@ class YamiboCheckinPlugin(Star):
             "Cookie": cookie,
         }
 
+        # 使用 cloudscraper 绕过可能存在的 Cloudflare 验证
         session = cloudscraper.create_scraper()
         session.headers.update(headers)
 
@@ -98,7 +108,7 @@ class YamiboCheckinPlugin(Star):
 
         def query_credit():
             try:
-                # 对象信息
+                # 抓取用户统计信息
                 r = session.get("https://bbs.yamibo.com/plugin.php?id=zqlj_sign", timeout=15)
                 tree = html.fromstring(r.text)
                 stat = tree.xpath('//*[@id="wp"]/div[2]/div[2]/div[3]/div[2]/ul/li/text()')
@@ -107,7 +117,7 @@ class YamiboCheckinPlugin(Star):
                 msg.append({"name": "查询对象失败", "value": str(e)})
 
             try:
-                # 积分信息
+                # 抓取积分明细
                 r = session.get("https://bbs.yamibo.com/home.php?mod=spacecp&ac=credit", timeout=15)
                 soup = BeautifulSoup(r.text, "lxml")
                 tree = html.fromstring(str(soup))
@@ -124,11 +134,12 @@ class YamiboCheckinPlugin(Star):
             except Exception as e:
                 msg.append({"name": "查询积分失败", "value": str(e)})
 
-        # 执行流程
+        # 核心执行流程
         if check_in():
             query_credit()
             
         if not msg:
-            return "未能获取任何签到信息，请检查网络或 Cookie。"
+            return "未能获取任何签到信息，请检查网络或 Cookie 是否正确。"
 
+        # 将 msg 列表格式化为文本返回
         return "\n".join([f"{one.get('name')}: {one.get('value')}" for one in msg])
